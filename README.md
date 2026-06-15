@@ -1,83 +1,40 @@
-# 🌐 OSINT Reconnaissance Intelligence Telegram Bot
+# 🚀 OSINT Investigation Bot
 
-<p align="center">
-  <img src="https://shields.io" alt="Python Version">
-  <img src="https://shields.io" alt="Telegram API">
-  <img src="https://shields.io" alt="Deployment Platform">
-</p>
+Yeh ek advanced Telegram bot hai jo OSINT (Open Source Intelligence) investigations ke liye banaya gaya hai. Yeh bot ZylaLabs aur various public APIs ka use karke real-time data fetch karta hai.
 
 ---
 
-## ⚡ OSINT Bot By:
-
-```text
-██╗░░██╗███╗░░░███╗███████╗░██████╗██╗░░██╗  ░██████╗██╗███╗░░██╗░██████╗░██╗░░██╗
-██║░░██║████╗░████║██╔════╝██╔════╝██║░░██║  ██╔════╝██║████╗░██║██╔════╝░██║░░██║
-██║░░██║██╔████╔██║█████╗░░╚█████╗░███████║  ╚█████╗░██║██╔██╗██║██║░░██╗░███████║
-██║░░██║██║╚██╔╝██║██╔══╝░░░╚═══██╗██╔══██║  ░╚═══██╗██║██║╚████║██║░░╚██╗██╔══██║
-╚█████╔╝██║░╚═╝░██║███████╗██████╔╝██║░░██║  ██████╔╝██║██║░╚███║╚██████╔╝██║░░██║
-░╚════╝░╚═╝░░░░░╚═╝╚══════╝╚═════╝░╚═╝░░╚═╝  ╚═════╝░╚═╝╚═╝░░╚══╝░╚═════╝░╚═╝░░╚═╝
-
-░██████╗░██╗░░██╗██████╗░░█████╗░░█████╗░██████╗░
-██╔════╝░██║░░██║██╔══██╗██╔══██╗██╔══██╗██╔══██╗
-██║░░██╗░██║░░██║██████╔╝███████║███████║██████╔╝
-██║░░╚██╗██║░░██║██╔══██╗██╔══██║██╔══██║██╔══██╗
-╚██████╔╝╚█████╔╝██║░░██║██║░░██║██║░░██║██║░░██║
-░╚═════╝░░╚════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═╝░░╚═╝╚═╝░░╚═╝
-```
+## 👤 DEVELOPER
+### ⚡ **U M E S H  S I N G H  G U R J A R** ⚡
+*(Coding by: Umesh Singh Gurjar)*
 
 ---
 
-## ✨ Features & Capabilities
+## 🛠 Features
+- **Mobile Number Info:** Phone number se related details.
+- **IP Intelligence:** IP address lookup.
+- **Vehicle RC:** RC details extraction.
+- **Telegram User/Chat Lookup:** TG IDs aur usernames ka investigation.
+- **Utility Tools:** Pincode aur IFSC code information.
+- **Force Join:** Channel subscription check.
+- **Health Check:** Koyeb/Cloud deployment ke liye optimized.
 
-*   **📞 Advanced Phone Recon (`/phone`)**: Validates phone numbers globally, extracts carrier network infrastructure details (Jio, Airtel, etc.), geographic zone info, and cross-references them against public breach repositories for security tracking.
-*   **🔍 Domain Lookup (`/domain`)**: Resolves target domains to underlying IP addresses and tracks active WHOIS registrar profiles and autonomous system numbers (ASN).
-*   **📍 Precise IP Geolocation (`/ip`)**: Extracts geographical metrics including the hosting country, region, operational ISP, and mapping coordinates.
-*   **👤 Username Footprint Scanner (`/user`)**: Audits major internet infrastructure networks (GitHub, Reddit, Twitter/X) to detect if a specific username matches existing active digital profiles.
-*   **🔒 Channel Force Join Integration**: Restricts system utilization until users subscribe to your specified Telegram Channel.
+## 📦 Tech Stack
+- **Language:** Python
+- **Frameworks:** `python-telegram-bot`, `Flask`
+- **Deployment:** Docker & Koyeb
 
----
-
-## 🛠️ Project Structure
-
-Your deployment repository requires the following structural file map:
-*   `bot.py` — The core asynchronous execution script.
-*   `requirements.txt` — Python external dependency stack.
-*   `Dockerfile` — Docker container architecture template.
-*   `.koyeb.yaml` — Koyeb cloud infrastructure configuration file.
-
----
-
-## 🚀 Instant Deployment Guide (Koyeb)
-
-### 1. Environment Variable Requirements
-Before running the deployment runtime container, configure these keys in your **Koyeb Dashboard Environment Settings**:
-
-| Variable Key | Value Context Example | Description |
-| :--- | :--- | :--- |
-| `TELEGRAM_BOT_TOKEN` | `728394...:AAH_xyz...` | Your HTTP API token from [@BotFather](https://t.me) |
-| `CHANNEL_USERNAME` | `@YourChannelHandle` | The target channel username for force join access control |
-
-### 2. Deployment Execution Steps
-1. Push your clean folder configurations to an active **GitHub Repository**.
-2. Connect your GitHub workspace directly to your **Koyeb Console Profile**.
-3. Select **Worker Service Type** (Background Application).
-4. Add the required Environment Variables listed above and trigger **Deploy**.
+## ⚙️ Deployment
+1. **Requirements:** `pip install -r requirements.txt`
+2. **Environment:** `TELEGRAM_TOKEN` aur `API_KEY` set karein.
+3. **Deployment:** GitHub repo ko Koyeb se connect karein aur deploy karein.
 
 ---
 
-## 📖 Operational Telegram Commands
-
-Once your background engine finishes compilation on Koyeb, open your Telegram bot and interface via the following command framework:
-
-*   `/start` — Verifies channel join status and boots up the structural interface menu.
-*   `/phone +91XXXXXXXXXX` — Scans international metadata profiles and compromised database indexes.
-*   `/domain example.com` — Extracts IP configurations and organizational tracking records.
-*   `/ip 8.8.8.8` — Tracks server geolocation positions and structural ISP data.
-*   `/user target_handle` — Identifies social footprint registrations across networks.
+## ⚠️ Disclaimer
+Yeh bot sirf educational aur investigation purposes ke liye hai. Developer kisi bhi galat istemal ke liye zimmedar nahi hai.
 
 ---
 
-## ⚠️ Legal & Security Disclaimer
-
-This application framework is engineered strictly for educational analysis, personal digital hygiene tracking, and legal penetration testing architectures. Using these search query automations to target entities without explicitly authorized mutual consent is heavily bound to violation parameters regarding global privacy terms and regional law environments. The authors hold no legal accountability or compliance liabilities regarding any system misbehavior, exploitation, or data mishandling by third-party actors.
+### 🌟 Support
+*Developed with Passion & Precision by **Umesh Singh Gurjar***
