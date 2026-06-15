@@ -1,12 +1,19 @@
-version: "1.0"
-apps:
-  - name: osint-recon-bot
-    services:
-      - name: bot-worker
-        type: worker
-        builder: dockerfile
-        instance_type: eco
-        # Explicitly defining empty ports and disabling check vectors
-        ports: []
-        health_checks: []
-        
+version: v1
+service:
+  name: osint-bot
+  instance_type: free
+  docker:
+    build:
+      dockerfile: Dockerfile
+  ports:
+    - port: 8080
+      protocol: http
+  env:
+    - key: TELEGRAM_TOKEN
+      secret: TELEGRAM_TOKEN_SECRET  # Koyeb dashboard mein secret add karein
+    - key: API_KEY
+      secret: API_KEY_SECRET        # Koyeb dashboard mein secret add karein
+  health_checks:
+    - port: 8080
+      path: /
+      protocol: http
