@@ -1,0 +1,12 @@
+# Koyeb Service Auto-Deployment Template
+version: "1.0"
+apps:
+  - name: osint-recon-bot
+    services:
+      - name: bot-worker
+        type: worker
+        # Tells Koyeb to compile using your local Dockerfile
+        builder: dockerfile
+        # Choose the eco-tier microinstance (Free Tier Compatible)
+        instance_type: eco
+        
