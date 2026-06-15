@@ -1,153 +1,97 @@
-import os
 import logging
-import socket
-import requests
-from dotenv import load_dotenv
-from ipwhois import IPWhois
+import httpx
+import os
+import threading
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes
-from telegram.error import TelegramError
-import phonenumbers
-from phonenumbers import geocoder, carrier, timezone
+from telegram.ext import (
+    ApplicationBuilder, ContextTypes, CommandHandler, 
+    CallbackQueryHandler, MessageHandler, filters
+)
 
-load_dotenv()
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-logger = logging.getLogger(__name__)
+# --- CONFIGURATION ---
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+API_KEY = os.getenv("API_KEY", "Test")
+CHANNEL_ID = "@YOUR_CHANNEL_USERNAME" # Yahan apne channel ka username daalein
+BASE_DOMAIN = "https://sbsakib.eu.cc/apis"
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME")
+# --- FLASK SERVER (Health Check) ---
+app = Flask(__name__)
+@app.route('/')
+def health(): return "Bot is running!", 200
 
-async def is_subscribed(user_id: int, context: ContextTypes.DEFAULT_TYPE) -> bool:
-    if not CHANNEL_USERNAME:
+def run_flask(): app.run(host='0.0.0.0', port=8080)
+
+# --- BOT LOGIC ---
+logging.basicConfig(level=logging.INFO)
+
+async def check_subscription(update, context):
+    try:
+        user_id = update.effective_user.id
+        member = await context.bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
+        if member.status in ['left', 'kicked']:
+            keyboard = [[InlineKeyboardButton("📢 Join Channel", url=f"https://t.me/{CHANNEL_ID.replace('@', '')}")]]
+            msg = "⚠️ Access Denied! Pehle hamara channel join karein."
+            if update.callback_query: await update.callback_query.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+            else: await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+            return False
         return True
-    try:
-        member = await context.bot.get_chat_member(chat_id=CHANNEL_USERNAME, user_id=user_id)
-        return member.status in ["member", "administrator", "creator"]
-    except Exception:
+    except Exception as e:
+        logging.error(f"Subscription Error: {e}")
         return True
 
-async def send_join_request(update: Update) -> None:
-    clean_username = CHANNEL_USERNAME.replace("@", "")
-    invite_url = f"https://t.me{clean_username}"
-    keyboard = [[InlineKeyboardButton("📢 Join Channel Here", url=invite_url)]]
-    await update.message.reply_text(
-        f"⚠️ *Access Denied!*\n\nJoin channel *{CHANNEL_USERNAME}* to use this OSINT bot.",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not await is_subscribed(update.effective_user.id, context):
-        await send_join_request(update)
-        return
-    await update.message.reply_text(
-        "🌐 *OSINT Bot Ready*\n\n"
-        "📞 `/phone <number>` - Phone Leak Search\n"
-        "🔍 `/domain <domain>` - WHOIS Lookup\n"
-        "📍 `/ip <ip>` - IP Geolocation\n"
-        "👤 `/user <username>` - Social Footprint",
-        parse_mode="Markdown"
-    )
-
-async def phone_recon_leak(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not await is_subscribed(update.effective_user.id, context):
-        await send_join_request(update)
-        return
-    if not context.args:
-        await update.message.reply_text("❌ Usage: `/phone +91XXXXXXXXXX`", parse_mode="Markdown")
-        return
-    raw_phone = "".join(context.args)
-    status_msg = await update.message.reply_text("⏳ Scanning registries...", parse_mode="Markdown")
-    telephony_report = "📱 *Identity Profile:*\n"
-    clean_num = raw_phone.replace("+", "").replace(" ", "").replace("-", "")
-    try:
-        parsed_num = phonenumbers.parse(raw_phone, None)
-        if phonenumbers.is_valid_number(parsed_num):
-            telephony_report += f"  • *Carrier:* {carrier.name_for_number(parsed_num, 'en')}\n  • *Country:* {geocoder.description_for_number(parsed_num, 'en')}\n"
-    except Exception as e:
-        telephony_report += f"  ⚠️ Metadata failed: {str(e)}\n"
-    leak_report = "\n💥 *Breach Logs:*\n"
-    try:
-        res = requests.get(f"https://leakcheck.io{clean_num}", timeout=10)
-        if res.status_code == 200 and res.json().get("success") and res.json().get("sources"):
-            leak_report += f"🚨 *Compromised!* Total Leaks: `{res.json().get('total')}`\n"
-            for source in res.json().get("sources", []):
-                leak_report += f"  • `{source.get('name')}` ({source.get('date')})\n"
-        else:
-            leak_report += "✅ No active public data leak records found."
-    except Exception as e:
-        leak_report += f"❌ Request failed: {str(e)}"
-    await status_msg.edit_text(telephony_report + leak_report, parse_mode="Markdown")
-
-async def domain_lookup(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not await is_subscribed(update.effective_user.id, context):
-        await send_join_request(update)
-        return
-    if not context.args:
-        await update.message.reply_text("❌ Usage: `/domain example.com`")
-        return
-    clean_domain = context.args[0].replace("http://", "").replace("https://", "").split("/")[0]
-    status_msg = await update.message.reply_text("⏳ Fetching domain info...")
-    try:
-        ip_addr = socket.gethostbyname(clean_domain)
-        obj = IPWhois(ip_addr)
-        results = obj.lookup_rdap(depth=1)
-        response = f"🎯 *Domain:* {clean_domain}\n🖥️ *IP:* `{ip_addr}`\n🏢 *ISP:* {results.get('asn_description')}"
-    except Exception as e:
-        response = f"❌ Error: {str(e)}"
-    await status_msg.edit_text(response, parse_mode="Markdown")
-
-async def ip_geolocation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not await is_subscribed(update.effective_user.id, context):
-        await send_join_request(update)
-        return
-    if not context.args:
-        await update.message.reply_text("❌ Usage: `/ip 8.8.8.8`")
-        return
-    ip = context.args[0]
-    status_msg = await update.message.reply_text("⏳ Tracking IP...")
-    try:
-        res = requests.get(f"http://ip-api.com{ip}", timeout=10).json()
-        if res.get("status") == "success":
-            response = f"📍 *IP:* {ip}\n🏳️ *Country:* {res.get('country')}\n🏙️ *City:* {res.get('city')}\n🌐 *ISP:* {res.get('isp')}"
-        else:
-            response = "❌ Invalid IP lookup."
-    except Exception as e:
-        response = f"❌ Timeout: {str(e)}"
-    await status_msg.edit_text(response, parse_mode="Markdown")
-
-async def user_recon(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not await is_subscribed(update.effective_user.id, context):
-        await send_join_request(update)
-        return
-    if not context.args:
-        await update.message.reply_text("❌ Usage: `/user username`")
-        return
-    username = context.args[0]
-    status_msg = await update.message.reply_text("⏳ Hunting handles...")
-    targets = {"GitHub": f"https://github.com{username}", "Reddit": f"https://reddit.com{username}"}
-    found = []
-    for platform, url in targets.items():
+async def fetch_api_data(endpoint, params):
+    url = f"{BASE_DOMAIN}/{endpoint}"
+    params['key'] = API_KEY
+    async with httpx.AsyncClient() as client:
         try:
-            res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=5)
-            found.append(f"✅ *{platform}:* [Link]({url})" if res.status_code == 200 else f"❌ *{platform}:* Not Found")
-        except Exception:
-            found.append(f"⚠️ *{platform}:* Timeout")
-    await status_msg.edit_text(f"👤 *User:* {username}\n\n" + "\n".join(found), parse_mode="Markdown", disable_web_page_preview=True)
+            r = await client.get(url, params=params, timeout=15.0)
+            return r.json() if r.status_code == 200 else {"error": f"API Status: {r.status_code}"}
+        except Exception as e: return {"error": str(e)}
 
-def main() -> None:
-    if not TOKEN:
-        print("CRITICAL: TELEGRAM_BOT_TOKEN is missing!")
-        return
-    app = Application.builder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("phone", phone_recon_leak))
-    app.add_handler(CommandHandler("domain", domain_lookup))
-    app.add_handler(CommandHandler("ip", ip_geolocation))
-    app.add_handler(CommandHandler("user", user_recon))
-    print("System polling loop started...")
-    app.run_polling()
+async def start(update, context):
+    keyboard = [
+        [InlineKeyboardButton("📱 Mobile", callback_data='num_info'), InlineKeyboardButton("🌐 IP Info", callback_data='ip_info')],
+        [InlineKeyboardButton("🚗 Vehicle", callback_data='vehicle_full'), InlineKeyboardButton("✈️ TG User", callback_data='tg_username')],
+        [InlineKeyboardButton("📍 Pincode", callback_data='pincode_info'), InlineKeyboardButton("🏦 IFSC", callback_data='ifsc_info')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    if update.callback_query:
+        await update.callback_query.message.reply_text("👋 Welcome to OSINT Bot! Menu:", reply_markup=reply_markup)
+    else:
+        await update.message.reply_text("👋 Welcome to OSINT Bot! Menu:", reply_markup=reply_markup)
 
-if __name__ == "__main__":
-    main()
+async def button_click(update, context):
+    query = update.callback_query
+    await query.answer()
+    if query.data == 'back_to_menu':
+        await start(update, context)
+    else:
+        context.user_data['endpoint'] = query.data
+        await query.message.reply_text(f"✅ {query.data.replace('_', ' ').upper()} selected. Ab input bhejein:")
+
+async def handle_input(update, context):
+    if not await check_subscription(update, context): return
     
+    if 'endpoint' in context.user_data:
+        endpoint = context.user_data.pop('endpoint')
+        mapping = {'num_info': 'number', 'ip_info': 'ip', 'vehicle_full': 'rc', 'tg_username': 'user', 'pincode_info': 'pincode', 'ifsc_info': 'ifsc'}
+        param_key = mapping.get(endpoint, 'query')
+        
+        await update.message.reply_text("🔍 Investigating, please wait...")
+        result = await fetch_api_data(endpoint, {param_key: update.message.text})
+        
+        keyboard = [[InlineKeyboardButton("🔙 Main Menu", callback_data='back_to_menu')]]
+        await update.message.reply_text(f"Result:\n```json\n{result}\n
+```", parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        await update.message.reply_text("❌ Pehle menu se option chunein.")
+
+if __name__ == '__main__':
+    threading.Thread(target=run_flask, daemon=True).start()
+    bot_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    bot_app.add_handler(CommandHandler("start", start))
+    bot_app.add_handler(CallbackQueryHandler(button_click))
+    bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_input))
+    bot_app.run_polling()
+                         
