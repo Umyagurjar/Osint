@@ -29,7 +29,7 @@ async def check_subscription(update, context):
         user_id = update.effective_user.id
         member = await context.bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
         if member.status in ['left', 'kicked']:
-            keyboard = [[InlineKeyboardButton("📢 Join Channel", url=f"https://t.me/{CHANNEL_ID.replace('@', '')}")]]
+            keyboard = [[InlineKeyboardButton("📢 Join Channel", url="https://t.me/" + CHANNEL_ID.replace('@', ''))]]
             msg = "⚠️ Access Denied! Pehle hamara channel join karein."
             if update.callback_query: await update.callback_query.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
             else: await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -38,12 +38,12 @@ async def check_subscription(update, context):
     except: return True
 
 async def fetch_api_data(endpoint, params):
-    url = f"{BASE_DOMAIN}/{endpoint}"
+    url = BASE_DOMAIN + "/" + endpoint
     params['key'] = API_KEY
     async with httpx.AsyncClient() as client:
         try:
             r = await client.get(url, params=params, timeout=15.0)
-            return r.json() if r.status_code == 200 else {"error": f"API Status: {r.status_code}"}
+            return r.json() if r.status_code == 200 else {"error": "API Status: " + str(r.status_code)}
         except Exception as e: return {"error": str(e)}
 
 async def start(update, context):
@@ -62,7 +62,7 @@ async def button_click(update, context):
     if query.data == 'back_to_menu': await start(update, context)
     else:
         context.user_data['endpoint'] = query.data
-        await query.message.reply_text(f"✅ {query.data.replace('_', ' ').upper()} selected. Ab input bhejein:")
+        await query.message.reply_text("✅ " + query.data.replace('_', ' ').upper() + " selected. Ab input bhejein:")
 
 async def handle_input(update, context):
     if not await check_subscription(update, context): return
@@ -75,13 +75,10 @@ async def handle_input(update, context):
         await update.message.reply_text("🔍 Investigating, please wait...")
         result = await fetch_api_data(endpoint, {param_key: update.message.text})
         
-        # --- FIXED BLOCK START ---
-        # F-string ka use khatam, direct concatenation use kiya hai
-        res_str = str(result)
-        final_msg = "Result:\n```json\n" + res_str + "\n```"
+        # --- NO F-STRING ZONE ---
+        msg_out = "Result:\n```json\n" + str(result) + "\n```"
         keyboard = [[InlineKeyboardButton("🔙 Main Menu", callback_data='back_to_menu')]]
-        await update.message.reply_text(final_msg, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
-        # --- FIXED BLOCK END ---
+        await update.message.reply_text(msg_out, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
     else:
         await update.message.reply_text("❌ Pehle menu se option chunein.")
 
