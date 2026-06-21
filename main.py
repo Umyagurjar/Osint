@@ -10,12 +10,12 @@ from telegram.ext import (
 )
 
 # --- CONFIGURATION ---
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TOKEN = os.getenv("TELEGRAM_TOKEN")
 API_KEY = os.getenv("API_KEY", "Test")
 CHANNEL_ID = os.getenv("CHANNEL_ID", "@YOUR_CHANNEL_USERNAME")
 BASE_DOMAIN = "https://sbsakib.eu.cc/apis"
 
-# --- FLASK SERVER (For Uptime) ---
+# --- FLASK SERVER ---
 app = Flask(__name__)
 @app.route('/')
 def health(): return "Bot is running!", 200
@@ -75,11 +75,13 @@ async def handle_input(update, context):
         await update.message.reply_text("🔍 Investigating, please wait...")
         result = await fetch_api_data(endpoint, {param_key: update.message.text})
         
-        # ERROR FIXED HERE: String concatenation used instead of complex f-string
-        message_text = "Result:\n```json\n" + str(result) + "\n```"
-        
+        # --- FIXED BLOCK START ---
+        # F-string ka use khatam, direct concatenation use kiya hai
+        res_str = str(result)
+        final_msg = "Result:\n```json\n" + res_str + "\n```"
         keyboard = [[InlineKeyboardButton("🔙 Main Menu", callback_data='back_to_menu')]]
-        await update.message.reply_text(message_text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
+        await update.message.reply_text(final_msg, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
+        # --- FIXED BLOCK END ---
     else:
         await update.message.reply_text("❌ Pehle menu se option chunein.")
 
