@@ -49,18 +49,26 @@ async def fetch_api_data(endpoint, params):
             return r.json() if r.status_code == 200 else {"error": f"API Status: {r.status_code}"}
         except Exception as e: return {"error": str(e)}
 
-async def start(update, context):
-    keyboard = [
-        [InlineKeyboardButton("📱 Mobile", callback_data='num_info'), InlineKeyboardButton("🌐 IP Info", callback_data='ip_info')],
-        [InlineKeyboardButton("🚗 Vehicle", callback_data='vehicle_full'), InlineKeyboardButton("✈️ TG User", callback_data='tg_username')],
-        [InlineKeyboardButton("📍 Pincode", callback_data='pincode_info'), InlineKeyboardButton("🏦 IFSC", callback_data='ifsc_info')]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    if update.callback_query:
-        await update.callback_query.message.reply_text("👋 Welcome to OSINT Bot! Menu:", reply_markup=reply_markup)
+async def handle_input(update, context):
+    if not await check_subscription(update, context): return
+    
+    if 'endpoint' in context.user_data:
+        endpoint = context.user_data.pop('endpoint')
+        mapping = {'num_info': 'number', 'ip_info': 'ip', 'vehicle_full': 'rc', 'tg_username': 'user', 'pincode_info': 'pincode', 'ifsc_info': 'ifsc'}
+        param_key = mapping.get(endpoint, 'query')
+        
+        await update.message.reply_text("🔍 Investigating, please wait...")
+        result = await fetch_api_data(endpoint, {param_key: update.message.text})
+        
+        # FIX: JSON ko string mein convert karke alag se handle karein
+        result_str = str(result)
+        message_text = f"Result:\n```json\n{result_str}\n```"
+        
+        keyboard = [[InlineKeyboardButton("🔙 Main Menu", callback_data='back_to_menu')]]
+        await update.message.reply_text(message_text, parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
     else:
-        await update.message.reply_text("👋 Welcome to OSINT Bot! Menu:", reply_markup=reply_markup)
-
+        await update.message.reply_text("❌ Pehle menu se option chunein.")
+        
 async def button_click(update, context):
     query = update.callback_query
     await query.answer()
