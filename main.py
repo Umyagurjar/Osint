@@ -17,7 +17,7 @@ pincode_database = {
     "226001": "Lucknow (GPO)"
 }
 
-TOKEN = "YOUR_TELEGRAM_BOT_TOKEN_HERE" # Apna Token yahan daalein
+TOKEN = "8150517089:AAGgRxsAOg6-nGZkIqo4MVJuXhchXc4XFl8" # Apna Token yahan daalein
 
 app = Flask(__name__)
 @app.route('/')
