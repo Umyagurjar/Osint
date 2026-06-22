@@ -1,23 +1,11 @@
-import threading
+import asyncio, threading
 from flask import Flask
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-# --- STATIC DATA (Yahan aap aur pincodes add kar sakte hain) ---
-pincode_database = {
-    "110001": "Delhi (Connaught Place)",
-    "400001": "Mumbai (Fort)",
-    "700001": "Kolkata (GPO)",
-    "600001": "Chennai (George Town)",
-    "560001": "Bengaluru (GPO)",
-    "500001": "Hyderabad (GPO)",
-    "380001": "Ahmedabad (GPO)",
-    "411001": "Pune (GPO)",
-    "302001": "Jaipur (GPO)",
-    "226001": "Lucknow (GPO)"
-}
-
-TOKEN = "8150517089:AAGgRxsAOg6-nGZkIqo4MVJuXhchXc4XFl8" # Apna Token yahan daalein
+TOKEN = "YOUR_BOT_TOKEN"
+# Apni photo ka link yahan daalein
+HEADER_PHOTO_URL = "https://example.com/your-image.jpg" 
 
 app = Flask(__name__)
 @app.route('/')
@@ -25,26 +13,45 @@ def health(): return "Bot is running!", 200
 def run_flask(): app.run(host='0.0.0.0', port=8080)
 
 # --- HANDLERS ---
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Hello! Pincode bhejein (e.g., 110001) main aapko city bata dunga.")
+async def start(update, context):
+    # Photo aur buttons bhejne ka code
+    k = [
+        [InlineKeyboardButton("📱 Mobile", callback_data='mob'), InlineKeyboardButton("🆔 TG ID", callback_data='tg')],
+        [InlineKeyboardButton("🌐 IP", callback_data='ip'), InlineKeyboardButton("🏦 IFSC", callback_data='ifsc')],
+        [InlineKeyboardButton("📍 Pincode", callback_data='pin'), InlineKeyboardButton("🚗 Vehicle", callback_data='veh')]
+    ]
+    
+    await update.message.reply_photo(
+        photo=HEADER_PHOTO_URL,
+        caption="Most Powerful Bot With निम्नलिखित Features",
+        reply_markup=InlineKeyboardMarkup(k)
+    )
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_input = update.message.text.strip()
+async def button_click(update, context):
+    query = update.callback_query
+    await query.answer()
+    context.user_data['selected'] = query.data
+    await query.message.reply_text(f"Selected: {query.data}. Ab detail bhejein:")
+
+async def handle_input(update, context):
+    if 'selected' not in context.user_data:
+        await update.message.reply_text("Pehle menu se button chunein.")
+        return
     
-    # Database mein search karein
-    city_name = pincode_database.get(user_input)
+    # User ko dikha rahe hain ki process ho raha hai
+    status = await update.message.reply_text("🔍 Request process ho rahi hai...")
     
-    if city_name:
-        await update.message.reply_text(f"📍 Pincode: {user_input}\n🏢 City: {city_name}")
-    else:
-        await update.message.reply_text("❌ Sorry, ye pincode hamare database mein nahi hai.")
+    # 3 second ka wait (Simulated processing)
+    await asyncio.sleep(3)
+    
+    # Server Issue ka error message
+    await status.edit_text("❌ Server Error: Server Ki Ma Chudi Padi H Dobara Try Karna Bhai😁😄")
+    context.user_data.pop('selected')
 
 if __name__ == '__main__':
-    # Web server start
     threading.Thread(target=run_flask, daemon=True).start()
-    
-    # Bot start
     app_b = ApplicationBuilder().token(TOKEN).build()
     app_b.add_handler(CommandHandler("start", start))
-    app_b.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app_b.add_handler(CallbackQueryHandler(button_click))
+    app_b.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_input))
     app_b.run_polling()
