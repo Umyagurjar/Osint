@@ -5,7 +5,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 
 TOKEN = "8150517089:AAGgRxsAOg6-nGZkIqo4MVJuXhchXc4XFl8"
 # Apni photo ka link yahan daalein
-HEADER_PHOTO_URL = "https://example.com/your-image.jpg" 
+HEADER_PHOTO_URL = "https://graph.org/file/5ab741a9acc297d3df19e-48744a8755ad7e02b0.jpg" 
 
 app = Flask(__name__)
 @app.route('/')
