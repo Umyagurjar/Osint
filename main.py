@@ -1,79 +1,50 @@
-import logging, httpx, os, threading
+import threading
 from flask import Flask
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-# --- CONFIG ---
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-API_KEY = os.getenv("API_KEY") # Ensure this is set in Render
-BASE_API = "https://api.zylalabs.com/v1"
+# --- STATIC DATA (Yahan aap aur pincodes add kar sakte hain) ---
+pincode_database = {
+    "110001": "Delhi (Connaught Place)",
+    "400001": "Mumbai (Fort)",
+    "700001": "Kolkata (GPO)",
+    "600001": "Chennai (George Town)",
+    "560001": "Bengaluru (GPO)",
+    "500001": "Hyderabad (GPO)",
+    "380001": "Ahmedabad (GPO)",
+    "411001": "Pune (GPO)",
+    "302001": "Jaipur (GPO)",
+    "226001": "Lucknow (GPO)"
+}
+
+TOKEN = "YOUR_TELEGRAM_BOT_TOKEN_HERE" # Apna Token yahan daalein
 
 app = Flask(__name__)
 @app.route('/')
 def health(): return "Bot is running!", 200
 def run_flask(): app.run(host='0.0.0.0', port=8080)
 
-# --- API LOGIC ---
-async def fetch_api_data(endpoint, user_input):
-    # Zyla Labs Endpoints
-    endpoints = {
-        'num_info': '/reverse-phone-lookup/get-data',
-        'ip_info': '/ip-lookup/info',
-        'vehicle_full': '/vehicle-data/get',
-        'pincode_info': '/pincode/details'
-    }
-    
-    params_map = {
-        'num_info': 'number',
-        'ip_info': 'ip',
-        'vehicle_full': 'rc',
-        'pincode_info': 'pincode'
-    }
-
-    url = BASE_API + endpoints.get(endpoint)
-    params = {params_map.get(endpoint): user_input}
-    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
-
-    async with httpx.AsyncClient() as client:
-        try:
-            # Timeout bada diya hai taaki slow response par bot na ruke
-            r = await client.get(url, params=params, headers=headers, timeout=30.0)
-            return r.json() if r.status_code == 200 else {"error": f"API Status {r.status_code}", "response": r.text}
-        except Exception as e:
-            return {"error": "Connection Failed", "details": str(e)}
-
 # --- HANDLERS ---
-async def start(update, context):
-    k = [
-        [InlineKeyboardButton("📱 Mobile", callback_data='num_info'), InlineKeyboardButton("🌐 IP", callback_data='ip_info')],
-        [InlineKeyboardButton("🚗 Vehicle", callback_data='vehicle_full'), InlineKeyboardButton("📍 Pincode", callback_data='pincode_info')]
-    ]
-    await update.message.reply_text("Menu:", reply_markup=InlineKeyboardMarkup(k))
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("👋 Hello! Pincode bhejein (e.g., 110001) main aapko city bata dunga.")
 
-async def button_click(update, context):
-    query = update.callback_query
-    await query.answer()
-    context.user_data['endpoint'] = query.data
-    await query.message.reply_text(f"Selected: {query.data}. Ab data bhejein:")
-
-async def handle_input(update, context):
-    if 'endpoint' not in context.user_data:
-        await update.message.reply_text("Pehle menu se kuch chunein.")
-        return
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_input = update.message.text.strip()
     
-    endpoint = context.user_data.pop('endpoint')
-    msg = await update.message.reply_text("🔍 Searching...")
+    # Database mein search karein
+    city_name = pincode_database.get(user_input)
     
-    result = await fetch_api_data(endpoint, update.message.text)
+    if city_name:
+        await update.message.reply_text(f"📍 Pincode: {user_input}\n🏢 City: {city_name}")
+    else:
+        await update.message.reply_text("❌ Sorry, ye pincode hamare database mein nahi hai.")
+
+if __name__ == '__main__':
+    # Web server start
+    threading.Thread(target=run_flask, daemon=True).start()
     
-    # Message formatting
-    res_str = str(result)
-    final_text = f"Result:\n
-http://googleusercontent.com/immersive_entry_chip/0
-
-### Ab ye check karo:
-1.  **Render Logs:** Jab aap `Searching...` dekh rahe ho, tab Render ke **Logs** tab mein jaao. Wahan `DEBUG` ya `Error` dikhega.
-2.  **API Key:** Render mein `Environment` variables mein `API_KEY` ko **verify** karo. Zyla Labs ki key ekdum exact honi chahiye.
-3.  **Path:** Zyla Labs ke dashboard par "Endpoint" tab mein jaakar check karo ki path `reverse-phone-lookup/get-data` hi hai ya kuch aur (kabhi-kabhi `/v1` ke baad ka path alag hota hai).
-
-Agar Render ke Logs mein **Status 401** aa raha hai, toh samjho API key match nahi ho rahi. Kya wahan koi specific error code dikh raha hai?
+    # Bot start
+    app_b = ApplicationBuilder().token(TOKEN).build()
+    app_b.add_handler(CommandHandler("start", start))
+    app_b.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app_b.run_polling()
