@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 # --- CONFIGURATION ---
-TOKEN = os.getenv("TELEGRAM_TOKEN")
+TOKEN = os.getenv("8150517089:AAGgRxsAOg6-nGZkIqo4MVJuXhchXc4XFl8")
 API_KEY = os.getenv("API_KEY", "Test")
 CHANNEL_ID = os.getenv("CHANNEL_ID", "@YOUR_CHANNEL_USERNAME")
 BASE_DOMAIN = "https://sbsakib.eu.cc/apis"
