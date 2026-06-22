@@ -70,3 +70,10 @@ async def handle_input(update, context):
     res_str = str(result)
     final_text = f"Result:\n
 http://googleusercontent.com/immersive_entry_chip/0
+
+### Ab ye check karo:
+1.  **Render Logs:** Jab aap `Searching...` dekh rahe ho, tab Render ke **Logs** tab mein jaao. Wahan `DEBUG` ya `Error` dikhega.
+2.  **API Key:** Render mein `Environment` variables mein `API_KEY` ko **verify** karo. Zyla Labs ki key ekdum exact honi chahiye.
+3.  **Path:** Zyla Labs ke dashboard par "Endpoint" tab mein jaakar check karo ki path `reverse-phone-lookup/get-data` hi hai ya kuch aur (kabhi-kabhi `/v1` ke baad ka path alag hota hai).
+
+Agar Render ke Logs mein **Status 401** aa raha hai, toh samjho API key match nahi ho rahi. Kya wahan koi specific error code dikh raha hai?
