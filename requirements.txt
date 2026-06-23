@@ -4,3 +4,4 @@ httpx
 flask
 gunicorn
 yt-dlp
+aiohttp
