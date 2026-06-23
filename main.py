@@ -23,7 +23,7 @@ async def start(update, context):
     
     await update.message.reply_photo(
         photo=HEADER_PHOTO_URL,
-        caption="𝑴𝒐𝒔𝒕 𝑷𝒐𝒘𝒆𝒓𝒇𝒖𝒍 𝑩𝒐𝒕 𝑾𝒊𝒕𝒉 निम्नलिखित 𝑭𝒆𝒂𝒕𝒖𝒓𝒆𝒔"
+        caption="𝑴𝒐𝒔𝒕 𝑷𝒐𝒘𝒆𝒓𝒇𝒖𝒍 𝑩𝒐𝒕 𝑾𝒊𝒕𝒉 निम्नलिखित 𝑭𝒆𝒂𝒕𝒖𝒓𝒆𝒔. \n\n"
 
         
 "𝑶𝒘𝒏𝒆𝒓 - 𝑼𝒎𝒆𝒔𝒉 𝑺𝒊𝒏𝒈𝒉 𝑮𝒖𝒓𝒋𝒂𝒓.",
