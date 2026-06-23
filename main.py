@@ -8,11 +8,11 @@ from telegram.ext import (
 )
 
 # --- CONFIG ---
-TOKEN = "YOUR_BOT_TOKEN"
-ADMIN_ID = 123456789 
-LOG_CHANNEL_ID = -1001234567890 
-REQUIRED_CHANNELS = ["@Channel1", "@Channel2"] 
-PHOTO_URL = "https://example.com/your-image.jpg"
+TOKEN = "8860791223:AAFIdnJb_YdwgI1fNNsGGTai24IAbyUD6eQ"
+ADMIN_ID = 6267863649 
+LOG_CHANNEL_ID = -1004420089406 
+REQUIRED_CHANNELS = ["@GMoviesXA", "@Gmoviesxb"] 
+PHOTO_URL = "https://graph.org/file/5ab741a9acc297d3df19e-48744a8755ad7e02b0.jpg"
 
 # --- DUMMY WEB SERVER (Port Solution) ---
 app = Flask(__name__)
