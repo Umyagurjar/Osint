@@ -1,9 +1,24 @@
-import asyncio
-import requests
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler, CallbackQueryHandler, 
-    MessageHandler, filters, ContextTypes
+import os
+from flask import Flask
+from threading import Thread
+
+# Dummy Web Server (Sirf Render ko satisfy karne ke liye)
+app_web = Flask(__name__)
+@app_web.route('/')
+def home(): return "Bot is running!"
+
+def run_web():
+    app_web.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
+
+# --- Main Block ---
+if __name__ == '__main__':
+    # Web server chalayein
+    Thread(target=run_web).start()
+    
+
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.run_polling()
+    
 )
 
 # --- CONFIGURATION ---
