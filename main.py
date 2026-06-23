@@ -2,7 +2,7 @@ import logging, requests, os, yt_dlp
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8860791223:AAFIdnJb_YdwgI1fNNsGGTai24IAbyUD6eQ"
+TOKEN = "8860791223:AAE-w6-UOHwbOyEuK9XNF6tOPBSqca8MydU"
 CHANNEL_ID = "@GMoviesXB"
 LOG_CHANNEL = -1004420089406
 PHOTO_URL = "https://graph.org/file/5ab741a9acc297d3df19e-48744a8755ad7e02b0.jpg"
