@@ -3,7 +3,7 @@ from flask import Flask
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8150517089:AAGgRxsAOg6-nGZkIqo4MVJuXhchXc4XFl8"
+TOKEN = "8860791223:AAFIdnJb_YdwgI1fNNsGGTai24IAbyUD6eQ"
 # Apni photo ka link yahan daalein
 HEADER_PHOTO_URL = "https://graph.org/file/5ab741a9acc297d3df19e-48744a8755ad7e02b0.jpg" 
 
