@@ -3,3 +3,4 @@ requests
 httpx
 flask
 gunicorn
+yt-dlp
