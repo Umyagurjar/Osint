@@ -2,9 +2,9 @@ import logging, requests, os, yt_dlp
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "YOUR_TOKEN_HERE"
-CHANNEL_ID = "@your_channel_username"
-LOG_CHANNEL = "@your_logs_channel"
+TOKEN = "8860791223:AAFIdnJb_YdwgI1fNNsGGTai24IAbyUD6eQ"
+CHANNEL_ID = "@GMoviesXA"
+LOG_CHANNEL = -1004420089406
 
 logging.basicConfig(level=logging.INFO)
 started_users = set()
