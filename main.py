@@ -1,99 +1,98 @@
-import asyncio, requests, os
-from flask import Flask
-from threading import Thread
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler, CallbackQueryHandler, 
-    MessageHandler, filters, ContextTypes
-)
+import logging, requests, os, asyncio, yt_dlp
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, filters, MessageHandler
 
-# --- CONFIG ---
 TOKEN = "8860791223:AAFIdnJb_YdwgI1fNNsGGTai24IAbyUD6eQ"
-ADMIN_ID = 6267863649 
-LOG_CHANNEL_ID = -1004420089406 
-REQUIRED_CHANNELS = ["@GMoviesXA", "@Gmoviesxb"] 
+CHANNEL_ID = "@GMoviesXB"
+LOG_CHANNEL_ID = -1004420089406
 PHOTO_URL = "https://graph.org/file/5ab741a9acc297d3df19e-48744a8755ad7e02b0.jpg"
 
-# --- DUMMY WEB SERVER (Port Solution) ---
-app = Flask(__name__)
-@app.route('/')
-def home(): return "Bot is running!"
-def run_web(): app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
+logging.basicConfig(level=logging.INFO)
 
-# --- LOGIC ---
-logged_users = set()
-
-def get_ip_details(ip):
-    try:
-        data = requests.get(f"http://ip-api.com/json/{ip}", timeout=5).json()
-        if data.get('status') == 'success':
-            return f"🌐 **IP Details for {ip}:**\n📍 Country: {data['country']}\n🏙 City: {data['city']}\n🏢 ISP: {data['isp']}"
-        return "❌ Invalid IP Address."
-    except: return "⚠️ Error fetching IP."
-
-def get_ifsc_details(ifsc):
-    try:
-        res = requests.get(f"https://ifsc.razorpay.com/{ifsc}", timeout=5)
-        if res.status_code == 200:
-            d = res.json()
-            return f"🏦 **Bank Details:**\n🏢 Bank: {d['BANK']}\n📍 Branch: {d['BRANCH']}\n🏠 Address: {d['ADDRESS']}"
-        return "❌ Invalid IFSC Code."
-    except: return "⚠️ Error fetching IFSC."
-
-async def is_subscribed(update, context):
-    user_id = update.effective_user.id
-    for ch in REQUIRED_CHANNELS:
-        try:
-            m = await context.bot.get_chat_member(ch, user_id)
-            if m.status in ['left', 'kicked']: return False
-        except: return False
-    return True
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# --- LOGGING ---
+async def log_user(update, context):
     user = update.effective_user
-    if not await is_subscribed(update, context):
-        keyboard = [[InlineKeyboardButton(f"Join {ch}", url=f"https://t.me/{ch.replace('@', '')}")] for ch in REQUIRED_CHANNELS]
-        keyboard.append([InlineKeyboardButton("✅ Check Joined", callback_data="check_join")])
-        await update.message.reply_photo(PHOTO_URL, caption="❌ Access ke liye channel join karein:", reply_markup=InlineKeyboardMarkup(keyboard))
-        return
+    msg = f"👤 **New User:** {user.first_name} (@{user.username})\nID: `{user.id}`"
+    await context.bot.send_message(chat_id=LOG_CHANNEL_ID, text=msg, parse_mode='Markdown')
 
-    if user.id not in logged_users:
-        try: await context.bot.send_message(LOG_CHANNEL_ID, f"👤 New User: {user.full_name} | ID: `{user.id}`")
-        except: pass
-        logged_users.add(user.id)
-    
-    caption = "𝑴𝒐𝒔𝒕 𝑷𝒐𝒘𝒆𝒓𝒇𝒖𝒍 𝑩𝒐𝒕\n\n🆔 TG ID, 🌐 IP, 🏦 IFSC, 🚗 Vehicle Details.\n\n𝑶𝒘𝒏𝒆𝒓 - 𝑼𝒎𝒆𝒔𝒉 𝑺𝒊𝒏𝒈𝒉 𝑮𝒖𝒓𝒋𝒂𝒓"
-    k = [[InlineKeyboardButton("📱 Mobile", callback_data='mob'), InlineKeyboardButton("🆔 TG ID", callback_data='tg')],
-         [InlineKeyboardButton("🌐 IP", callback_data='ip'), InlineKeyboardButton("🏦 IFSC", callback_data='ifsc')],
-         [InlineKeyboardButton("📍 Pincode", callback_data='pin'), InlineKeyboardButton("🚗 Vehicle", callback_data='veh')]]
-    await update.message.reply_photo(PHOTO_URL, caption=caption, reply_markup=InlineKeyboardMarkup(k))
+# --- START MENU ---
+async def start(update, context):
+    await log_user(update, context)
+    keyboard = [
+        [InlineKeyboardButton("📱 Mobile/Vehicle/IP", callback_data='err')],
+        [InlineKeyboardButton("👤 TG Profile", callback_data='tg_id'), InlineKeyboardButton("📍 Pincode/IFSC", callback_data='search_info')],
+        [InlineKeyboardButton("🎵/🎥 YT Downloader", callback_data='yt_menu'), InlineKeyboardButton("📁 File to Link", callback_data='file_help')]
+    ]
+    await update.message.reply_photo(photo=PHOTO_URL, caption="🚀 **Mega Utility Bot**\nSelect a tool:", reply_markup=InlineKeyboardMarkup(keyboard))
 
-async def button_handler(update, context):
+# --- BUTTON HANDLER ---
+async def handle_button(update, context):
     query = update.callback_query
     await query.answer()
-    if query.data == "check_join": await start(update, context)
-    elif query.data == 'tg':
-        u = query.from_user
-        await query.message.reply_text(f"🆔 **Your Details:**\n👤 Name: {u.full_name}\n🆔 ID: `{u.id}`")
-    elif query.data in ['ip', 'ifsc', 'mob', 'pin', 'veh']:
-        context.user_data['waiting_for'] = query.data
-        await query.message.reply_text(f"📥 Apna {query.data.upper()} bhejein:")
+    
+    # Force Join
+    try:
+        member = await context.bot.get_chat_member(CHANNEL_ID, update.effective_user.id)
+        if member.status in ['left', 'kicked']: return await query.edit_message_text(f"⚠️ Join: {CHANNEL_ID}")
+    except: pass
 
-async def handle_input(update, context):
-    waiting = context.user_data.get('waiting_for')
-    text = update.message.text
-    if waiting == 'ip': await update.message.reply_text(get_ip_details(text), parse_mode="Markdown")
-    elif waiting == 'ifsc': await update.message.reply_text(get_ifsc_details(text), parse_mode="Markdown")
-    elif waiting in ['mob', 'pin', 'veh']:
-        s = await update.message.reply_text(f"🔍 Searching {waiting.upper()} for: {text}...")
-        await asyncio.sleep(4)
-        await s.edit_text("⚠️ **Server Down!**\n\nDatabase busy hai. Please 5 minute baad try karein.")
-    context.user_data['waiting_for'] = None
+    if query.data == 'err':
+        await query.edit_message_text("🔍 Searching...")
+        await asyncio.sleep(3)
+        await query.edit_message_text("❌ Server is currently down.")
+    elif query.data == 'tg_id':
+        u = update.effective_user
+        await query.edit_message_text(f"👤 Name: {u.first_name}\n🆔 ID: `{u.id}`\nUsername: @{u.username}")
+    elif query.data == 'search_info':
+        await query.edit_message_text("Use: /pin <code_or_pincode> OR /ifsc <code_or_ifsc>")
+    elif query.data == 'file_help':
+        await query.edit_message_text("Send me any file, and I will generate a direct download link!")
+    elif query.data == 'yt_menu':
+        keyboard = [
+            [InlineKeyboardButton("🎵 MP3", callback_data='dl_mp3'), InlineKeyboardButton("🎥 144p", callback_data='dl_144')],
+            [InlineKeyboardButton("🎥 360p", callback_data='dl_360'), InlineKeyboardButton("🎥 720p", callback_data='dl_720')]
+        ]
+        await query.edit_message_text("Select Quality:", reply_markup=InlineKeyboardMarkup(keyboard))
+    elif query.data.startswith('dl_'):
+        context.user_data['format'] = query.data
+        await query.edit_message_text("✅ Format selected. Now send me the YouTube URL.")
+
+# --- YT DOWNLOADER ---
+async def handle_yt_url(update, context):
+    if 'format' not in context.user_data: return await update.message.reply_text("First select format from menu!")
+    url = update.message.text
+    fmt_code = context.user_data['format']
+    
+    formats = {
+        'dl_mp3': 'bestaudio/best',
+        'dl_144': 'bestvideo[height<=144]+bestaudio/best',
+        'dl_360': 'bestvideo[height<=360]+bestaudio/best',
+        'dl_720': 'bestvideo[height<=720]+bestaudio/best'
+    }
+    
+    await update.message.reply_text("⏳ Downloading...")
+    try:
+        ydl_opts = {'format': formats[fmt_code], 'outtmpl': 'down.%(ext)s', 'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3'}] if fmt_code == 'dl_mp3' else []}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl: ydl.download([url])
+        await update.message.reply_document(document=open("down.mp3" if fmt_code=='dl_mp3' else "down.mp4", "rb"))
+        os.remove("down.mp3" if fmt_code=='dl_mp3' else "down.mp4")
+    except: await update.message.reply_text("❌ Download Failed.")
+
+# --- FILE TO LINK ---
+async def upload_file(update, context):
+    file = await update.message.document.get_file()
+    await file.download_to_drive("temp_file")
+    with open("temp_file", 'rb') as f:
+        res = requests.post("https://store1.gofile.io/uploadFile", files={'file': f}).json()
+    await update.message.reply_text(f"🔗 Link: {res['data']['downloadPage']}")
+    os.remove("temp_file")
 
 if __name__ == '__main__':
-    Thread(target=run_web).start() # Port solution
     app = ApplicationBuilder().token(TOKEN).build()
+    app.post_init = lambda a: a.bot.send_message(chat_id=LOG_CHANNEL_ID, text="🚀 Bot Online!")
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_input))
+    app.add_handler(CallbackQueryHandler(handle_button))
+    app.add_handler(MessageHandler(filters.Document.ALL, upload_file))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_yt_url))
     app.run_polling()
+        
