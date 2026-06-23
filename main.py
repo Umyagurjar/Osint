@@ -3,21 +3,11 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
 TOKEN = "8860791223:AAFIdnJb_YdwgI1fNNsGGTai24IAbyUD6eQ"
-CHANNEL_ID = "@GMoviesXA"
+CHANNEL_ID = "@GMoviesXB"
 LOG_CHANNEL = -1004420089406
+PHOTO_URL = "https://graph.org/file/5ab741a9acc297d3df19e-48744a8755ad7e02b0.jpg"
 
-logging.basicConfig(level=logging.INFO)
-started_users = set()
-
-# --- UTILITIES ---
-async def log_user(user):
-    if user.id not in started_users:
-        try: 
-            msg = f"👤 **New User:** {user.first_name} (@{user.username})\n🆔 `{user.id}`"
-            # Note: Iske liye bot ko log_channel mein admin banayein
-            started_users.add(user.id)
-        except: pass
-
+# --- HELPERS ---
 async def is_member(update, context):
     try:
         user_id = update.effective_user.id
@@ -25,66 +15,59 @@ async def is_member(update, context):
         return member.status not in ['left', 'kicked']
     except: return False
 
-# --- UI ---
 async def show_menu(update, query=None):
     kb = [
-        [InlineKeyboardButton("📱 Mobile Info", callback_data='err'), InlineKeyboardButton("🚗 Vehicle Info", callback_data='err')],
+        [InlineKeyboardButton("📱 Mobile/Vehicle", callback_data='err')],
         [InlineKeyboardButton("📍 Pincode", callback_data='pin_mode'), InlineKeyboardButton("🏦 IFSC", callback_data='ifsc_mode')],
-        [InlineKeyboardButton("🎵/🎥 YT Downloader", callback_data='yt_mode'), InlineKeyboardButton("📁 File to Link", callback_data='file_mode')]
+        [InlineKeyboardButton("🎵 YT Downloader", callback_data='yt_mode'), InlineKeyboardButton("📁 File to Link", callback_data='file_mode')]
     ]
-    if query: await query.edit_message_text("✨ **Mega Utility Hub**", reply_markup=InlineKeyboardMarkup(kb))
-    else: await update.message.reply_text("✨ **Mega Utility Hub**", reply_markup=InlineKeyboardMarkup(kb))
+    if query: await query.edit_message_text("✨ **Menu:**", reply_markup=InlineKeyboardMarkup(kb))
+    else: await update.message.reply_photo(photo=PHOTO_URL, caption="✨ **Main Menu:**", reply_markup=InlineKeyboardMarkup(kb))
 
-# --- HANDLERS ---
+# --- BUTTON HANDLER ---
 async def button_handler(update, context):
     query = update.callback_query
     await query.answer()
+    if not await is_member(update, context): return await query.edit_message_text(f"⚠️ Join: {CHANNEL_ID}")
     
-    # 1. Force Join Check
-    if not await is_member(update, context):
-        return await query.edit_message_text(f"⚠️ Pehle Channel Join Karo:\n{CHANNEL_ID}")
-
     data = query.data
-    if data == 'back':
-        await show_menu(update, query=query)
-    elif data == 'err':
-        await query.edit_message_text("❌ Server Down.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data='back')]]))
+    if data == 'back': await show_menu(update, query=query)
+    elif data == 'err': await query.edit_message_text("❌ Server Down.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data='back')]]))
     else:
         context.user_data['mode'] = data
-        await query.edit_message_text(f"📝 {data.replace('_mode', '').upper()} mode activated. Enter details:", 
-                                     reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data='back')]]))
+        await query.edit_message_text(f"📝 {data.replace('_mode', '').upper()} selected. Enter details:", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data='back')]]))
 
+# --- TEXT/FILE HANDLER ---
 async def text_handler(update, context):
     mode = context.user_data.get('mode')
     if not mode: return
     
-    await update.message.reply_text("⏳ Processing...")
     val = update.message.text
-    
-    # Logic Hub
+    msg = await update.message.reply_text("⏳ Processing...")
+
+    # LOGIC
     if mode == 'pin_mode':
         data = requests.get(f"https://api.postalpincode.in/pincode/{val}").json()
-        res = f"📮 Area: {data[0]['PostOffice'][0]['Name']}" if data[0]['Status'] == 'Success' else "❌ Invalid."
+        res = f"📮 Area: {data[0]['PostOffice'][0]['Name']}\n📍 State: {data[0]['PostOffice'][0]['State']}" if data[0]['Status'] == 'Success' else "❌ Invalid."
     elif mode == 'ifsc_mode':
         data = requests.get(f"https://ifsc.razorpay.com/{val}").json()
         res = f"🏦 Bank: {data.get('BANK', 'Not Found')}" if 'BANK' in data else "❌ Invalid."
     elif mode == 'yt_mode':
-        # Simple YT Link logic
-        res = "✅ Download starting..." 
-    else:
-        res = "❌ Something went wrong."
-        
-    await update.message.reply_text(res, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data='back')]]))
+        try:
+            ydl_opts = {'format': 'best', 'outtmpl': 'vid.mp4'}
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl: ydl.download([val])
+            await update.message.reply_document(document=open('vid.mp4', 'rb'))
+            os.remove('vid.mp4')
+            res = "✅ Download Complete!"
+        except: res = "❌ Download Failed."
+    else: res = "⚠️ Invalid action."
 
-async def start(update, context):
-    await log_user(update.effective_user)
-    await show_menu(update)
+    await msg.edit_text(res, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data='back')]]))
 
 if __name__ == '__main__':
     app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("start", show_menu))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
-    print("Bot is running...")
     app.run_polling()
-  
+    
