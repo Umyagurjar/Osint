@@ -23,7 +23,7 @@ async def start(update, context):
         [InlineKeyboardButton("👤 TG Profile", callback_data='tg_id'), InlineKeyboardButton("📍 Pincode/IFSC", callback_data='search_info')],
         [InlineKeyboardButton("🎵/🎥 YT Downloader", callback_data='yt_menu'), InlineKeyboardButton("📁 File to Link", callback_data='file_help')]
     ]
-    await update.message.reply_photo(photo=PHOTO_URL, caption="🚀 **Mega Utility Bot**\nSelect a tool:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_photo(photo=PHOTO_URL, caption="𝑴𝒐𝒔𝒕 𝑷𝒐𝒘𝒆𝒓𝒇𝒖𝒍 𝑩𝒐𝒕 𝑾𝒊𝒕𝒉 निम्नलिखित 𝑭𝒆𝒂𝒕𝒖𝒓𝒆𝒔. /n𝑶𝒘𝒏𝒆𝒓 - 𝑼𝒎𝒆𝒔𝒉 𝑺𝒊𝒏𝒈𝒉 𝑮𝒖𝒓𝒋𝒂𝒓", reply_markup=InlineKeyboardMarkup(keyboard))
 
 # --- BUTTON HANDLER ---
 async def handle_button(update, context):
@@ -39,7 +39,7 @@ async def handle_button(update, context):
     if query.data == 'err':
         await query.edit_message_text("🔍 Searching...")
         await asyncio.sleep(3)
-        await query.edit_message_text("❌ Server is currently down.")
+        await query.edit_message_text("❌ 𝑺𝒆𝒓𝒗𝒆𝒓 𝑲𝒊 𝑴𝒂 𝑪𝒉𝒖𝒅𝒊 𝑷𝒂𝒅𝒊 𝑯 𝑩𝒉𝒂𝒊 𝑬𝒏𝒈𝒍𝒊𝒔𝒉 𝑴𝒆 𝑩𝒐𝒍𝒆 𝑻𝒐 𝑺𝒆𝒓𝒗𝒆𝒓 𝑰𝒔𝒔𝒖𝒆𝒔.")
     elif query.data == 'tg_id':
         u = update.effective_user
         await query.edit_message_text(f"👤 Name: {u.first_name}\n🆔 ID: `{u.id}`\nUsername: @{u.username}")
