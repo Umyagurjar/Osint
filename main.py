@@ -1,4 +1,5 @@
-import logging, requests, os, yt_dlp
+import logging, requests, os, yt_dlp, asyncio
+from aiohttp import web 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
@@ -7,13 +8,20 @@ CHANNEL_ID = "@GMoviesXB"
 LOG_CHANNEL = -1004420089406
 PHOTO_URL = "https://graph.org/file/5ab741a9acc297d3df19e-48744a8755ad7e02b0.jpg"
 
+async def handle_ping(request):
+    return web.Response(text="Bot is Active!")
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get('/', handle_ping)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.environ.get("PORT", 8080)) 
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+
 # --- HELPERS ---
 async def is_member(update, context):
-    try:
-        user_id = update.effective_user.id
-        member = await context.bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
-        return member.status not in ['left', 'kicked']
-    except: return False
 
 async def show_menu(update, query=None):
     kb = [
